@@ -1,4 +1,6 @@
 packages: []
+catalog:
+  immer: ^10.1.1
 catalogs:
   build:
     '@iconify-json/carbon': ^1.2.9
