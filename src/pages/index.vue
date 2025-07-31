@@ -10,8 +10,9 @@ const undoStack = ref<PatchItem[]>([])
 const redoStack = ref<PatchItem[]>([])
 
 const state = spyware({
-  name: 'immer-proxy',
+  name: 'hello, spy!',
   description: 'the project being developed by littlesound.',
+  version: '0.0.1',
 }, (patches, inversePatches) => {
   undoStack.value.push(markRaw({
     direct: patches,
@@ -21,10 +22,6 @@ const state = spyware({
 })
 
 const showState = shallowRef(state)
-
-function update() {
-  triggerRef(showState)
-}
 
 function undo() {
   if (undoStack.value.length === 0)
@@ -42,17 +39,16 @@ function redo() {
   patchState(state, patch.direct)
 }
 
-;(window as any).immerState = state
-;(window as any).immerUpdate = update
+;(window as any).spywareState = state
 </script>
 
 <template>
   <div p10 flex="~ col gap-10">
     <div>
       <h1 text-xl font-900>
-        immer-proxy
+        Spyware
       </h1>
-      <p>use <span class="text-green-300">window.immerState</span> in console to play with immer-proxy</p>
+      <p>use <span class="text-blue-300">window.spywareState</span> in console to play with immer-proxy</p>
     </div>
 
     <div flex="~ gap-2">
@@ -68,29 +64,50 @@ function redo() {
       <h2 text-lg font-100>
         State
       </h2>
-      <pre class="text-sm text-green-300 font-mono whitespace-pre-wrap break-words" v-text="JSON.stringify(showState, null, 2)" />
+      <pre class="text-sm text-blue-300 font-mono whitespace-pre-wrap break-words" v-text="JSON.stringify(showState, null, 2)" />
     </div>
 
-    <div>
-      <h2 text-lg font-100>
-        Patches
-      </h2>
-      <div v-for="(patch, index) in undoStack" :key="index" text-green-300>
-        <p>{{ patch.direct }}</p>
+    <div flex="~ col gap-5">
+      <div flex="~ col gap-2">
+        <h2 text-lg font-100>
+          Undos
+        </h2>
+        <div v-for="(patch, index) in undoStack" :key="index">
+          <p text-green-300>
+            {{ patch.direct }}
+          </p>
+          <p text-sm text-red-300>
+            {{ patch.inverse }}
+          </p>
+        </div>
       </div>
-      <div v-for="(patch, index) in redoStack" :key="index" text-red-300>
-        <p>{{ patch.direct }}</p>
+      <div flex="~ col gap-2">
+        <h2 text-lg font-100>
+          Redos
+        </h2>
+        <div v-for="(patch, index) in redoStack" :key="index">
+          <p text-green-300>
+            {{ patch.direct }}
+          </p>
+          <p text-sm text-red-300>
+            {{ patch.inverse }}
+          </p>
+        </div>
       </div>
     </div>
-    <div>
-      <h2 text-lg font-100>
-        Inverse Patches
-      </h2>
-      <div v-for="(patch, index) in undoStack" :key="index" text-red-300>
-        <p>{{ patch.inverse }}</p>
+
+    <div flex="~ items-center gap-5" font-100>
+      <div flex="~ items-center gap-2">
+        <div rounded-full bg-green-300 h-2 w-2 />
+        <div op-75>
+          Direct Patches
+        </div>
       </div>
-      <div v-for="(patch, index) in redoStack" :key="index" text-green-300>
-        <p>{{ patch.inverse }}</p>
+      <div flex="~ items-center gap-2">
+        <div rounded-full bg-red-300 h-2 w-2 />
+        <div op-75>
+          Inverse Patches
+        </div>
       </div>
     </div>
   </div>
