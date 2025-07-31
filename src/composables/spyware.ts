@@ -6,8 +6,6 @@ export type { Patch } from 'immer'
 enablePatches()
 import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
 
-// TODO 支持数组 push 之类的操作
-
 const STATE_SOURCE = Symbol('state-source')
 const STATE_SYMBOL = Symbol('state-symbol')
 
@@ -26,6 +24,15 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
   if (isSpyware(source)) {
     throw new Error('The source has been handled by an state proxy.')
+  }
+
+  if (patchListener) {
+    const _patchListener = patchListener
+    patchListener = (patches, inversePatches) => {
+      if (patches.length === 0 && inversePatches.length === 0)
+        return
+      _patchListener(patches, inversePatches)
+    }
   }
 
   const _value = createProxy(() => draft) as Draft<T>
@@ -97,7 +104,11 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
       },
 
       getOwnPropertyDescriptor(_, prop) {
-        return Reflect.getOwnPropertyDescriptor(subDraft(), prop)
+        const descriptor = Reflect.getOwnPropertyDescriptor(subDraft(), prop)
+        if (descriptor && prop === 'length' && Array.isArray(subDraft())) {
+          return { ...descriptor, configurable: true }
+        }
+        return descriptor
       },
 
       setPrototypeOf(_, proto) {

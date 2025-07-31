@@ -48,7 +48,7 @@ function redo() {
       <h1 text-xl font-900>
         Spyware
       </h1>
-      <p>use <span class="text-blue-300">window.spywareState</span> in console to play with immer-proxy</p>
+      <p>use <span class="text-blue-300">window.spywareState.value</span> in console to play with undo/redo</p>
     </div>
 
     <div flex="~ gap-2">
