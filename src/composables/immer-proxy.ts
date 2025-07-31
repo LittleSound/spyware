@@ -4,20 +4,60 @@ import { enablePatches } from 'immer'
 export type { Patch } from 'immer'
 
 enablePatches()
-import { createDraft, finishDraft, isDraft } from 'immer'
+import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
 
 // TODO 支持数组 push 之类的操作
 
+const STATE_SOURCE = Symbol('state-source')
+const STATE_SYMBOL = Symbol('state-symbol')
+
+export interface ImmerProxyData<T extends Objectish> {
+  readonly [STATE_SYMBOL]: true
+  [STATE_SOURCE]: T
+  value: Draft<T>
+}
+
 /**
  * 记录一个对象的修改历史。
- * @param source
  */
-
-export function useImmerProxy<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): Draft<T> {
+export function useImmerProxy<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): ImmerProxyData<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
 
-  return createProxy(() => draft) as Draft<T>
+  if (isState(source)) {
+    throw new Error('The source has been handled by an state proxy.')
+  }
+
+  const _value = createProxy(() => draft) as Draft<T>
+
+  const immerRoot = {
+    [STATE_SYMBOL]: true as const,
+    get [STATE_SOURCE]() {
+      return source
+    },
+    set [STATE_SOURCE](value) {
+      setSource(value)
+    },
+
+    get value() {
+      return _value
+    },
+    set value(value) {
+      submitDraft(value)
+    },
+  }
+
+  return immerRoot
+
+  function setSource(value: T) {
+    source = value
+    cacheKey += 1
+    draft = createDraft(source)
+  }
+
+  function submitDraft(value = draft) {
+    setSource(finishDraft(value, patchListener))
+  }
 
   function createProxy(subDraft: () => Record<string | number | symbol, any>) {
     return new Proxy({}, {
@@ -87,10 +127,31 @@ export function useImmerProxy<T extends Objectish>(source: T, patchListener?: Pa
       },
     })
   }
+}
 
-  function submitDraft() {
-    source = finishDraft(draft, patchListener)
-    cacheKey += 1
-    draft = createDraft(source)
-  }
+/**
+ * 将修改记录应用到状态上并修改状态。
+ */
+export function patchState(state: ImmerProxyData<Objectish>, patches: Patch[]) {
+  let source = state[STATE_SOURCE]
+  source = applyPatches(source, patches)
+  state[STATE_SOURCE] = source
+}
+
+/**
+ * 克隆传入的状态，并返回一个新状态。新状态与旧状态完全独立，不会互相影响。
+ * 之后可以使用 patchState 来重新同步 fork 后的状态之间的差异。
+ *
+ * 设计单独的 forkState API 将相比于直接将 state 传入 useImmerProxy 带来更清晰的语义。
+ */
+export function forkState<T extends Objectish>(state: ImmerProxyData<T>, patchListener?: PatchListener | undefined): ImmerProxyData<T> {
+  const raw = state[STATE_SOURCE]
+  return useImmerProxy(raw, patchListener)
+}
+
+/**
+ * 判断一个值是不是 State
+ */
+export function isState(value: any): value is ImmerProxyData<Objectish> {
+  return typeof value === 'object' && value !== null && (value as any)[STATE_SYMBOL] === true
 }

@@ -8,6 +8,7 @@ import {
 
 export default defineConfig({
   shortcuts: [
+    ['btn', 'px-3 py-1 rounded-md bg-gray-200 cursor-pointer dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all duration-200 active:scale-95'],
   ],
   presets: [
     presetWind4(),
