@@ -30,6 +30,10 @@ catalogs:
     unplugin-vue-router:
       specifier: ^0.12.0
       version: 0.12.0
+  default:
+    immer:
+      specifier: ^10.1.1
+      version: 10.1.1
   dev:
     '@antfu/eslint-config':
       specifier: ^4.14.1
@@ -93,7 +97,7 @@ importers:
         specifier: catalog:frontend
         version: 13.3.0(vue@3.5.16(typescript@5.8.3))
       immer:
-        specifier: ^10.1.1
+        specifier: 'catalog:'
         version: 10.1.1
       vue:
         specifier: catalog:frontend
