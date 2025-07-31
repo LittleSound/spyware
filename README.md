@@ -4,6 +4,8 @@ Trying to build a tool that can track and patch state change history. Used for s
 
 It's just a draft for now. If you want to play around, you can clone it and run `nr dev`.
 
+If you don’t know how to use it, you can take a look at the [unit tests](./test/spyware.test.ts).
+
 ## TODO
 
 #### Important
