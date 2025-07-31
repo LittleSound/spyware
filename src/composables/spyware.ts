@@ -11,20 +11,20 @@ import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
 const STATE_SOURCE = Symbol('state-source')
 const STATE_SYMBOL = Symbol('state-symbol')
 
-export interface ImmerProxyData<T extends Objectish> {
+export interface SpiedState<T extends Objectish> {
   readonly [STATE_SYMBOL]: true
   [STATE_SOURCE]: T
   value: Draft<T>
 }
 
 /**
- * 记录一个对象的修改历史。
+ * 返回 Spyware State 并记录对它的修改历史。
  */
-export function useImmerProxy<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): ImmerProxyData<T> {
+export function spyware<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): SpiedState<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
 
-  if (isState(source)) {
+  if (isSpyware(source)) {
     throw new Error('The source has been handled by an state proxy.')
   }
 
@@ -132,7 +132,7 @@ export function useImmerProxy<T extends Objectish>(source: T, patchListener?: Pa
 /**
  * 将修改记录应用到状态上并修改状态。
  */
-export function patchState(state: ImmerProxyData<Objectish>, patches: Patch[]) {
+export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
   let source = state[STATE_SOURCE]
   source = applyPatches(source, patches)
   state[STATE_SOURCE] = source
@@ -144,14 +144,14 @@ export function patchState(state: ImmerProxyData<Objectish>, patches: Patch[]) {
  *
  * 设计单独的 forkState API 将相比于直接将 state 传入 useImmerProxy 带来更清晰的语义。
  */
-export function forkState<T extends Objectish>(state: ImmerProxyData<T>, patchListener?: PatchListener | undefined): ImmerProxyData<T> {
+export function forkState<T extends Objectish>(state: SpiedState<T>, patchListener?: PatchListener | undefined): SpiedState<T> {
   const raw = state[STATE_SOURCE]
-  return useImmerProxy(raw, patchListener)
+  return spyware(raw, patchListener)
 }
 
 /**
- * 判断一个值是不是 State
+ * 判断一个值是不是 Spyware State
  */
-export function isState(value: any): value is ImmerProxyData<Objectish> {
+export function isSpyware(value: any): value is SpiedState<Objectish> {
   return typeof value === 'object' && value !== null && (value as any)[STATE_SYMBOL] === true
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Patch } from '~/composables/immer-proxy'
-import { patchState, useImmerProxy } from '~/composables/immer-proxy'
+import type { Patch } from '~/composables/spyware'
+import { patchState, spyware } from '~/composables/spyware'
 
 interface PatchItem {
   direct: Patch[]
@@ -9,7 +9,7 @@ interface PatchItem {
 const undoStack = ref<PatchItem[]>([])
 const redoStack = ref<PatchItem[]>([])
 
-const state = useImmerProxy({
+const state = spyware({
   name: 'immer-proxy',
   description: 'the project being developed by littlesound.',
 }, (patches, inversePatches) => {
