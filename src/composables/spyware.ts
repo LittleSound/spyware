@@ -1,5 +1,5 @@
 import type { Draft, Objectish, PatchListener } from 'immer'
-import { enablePatches } from 'immer'
+import { enablePatches, original } from 'immer'
 
 export type { Patch } from 'immer'
 
@@ -16,6 +16,8 @@ export interface SpiedState<T extends Objectish> {
   readonly commit: () => void
   value: Draft<T>
 }
+
+// TODO 为了正确跟踪 Array 的 push，pop 等操作。为 Array 的方法增加包装器 "Array Instrumentations"。
 
 /**
  * 返回 Spyware State 并记录对它的修改历史。
@@ -52,7 +54,7 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
     }
   }
 
-  const _value = createProxy(() => draft) as Draft<T>
+  const _value = createProxy(source, () => draft) as Draft<T>
 
   const immerRoot = {
     [STATE_SYMBOL]: true as const,
@@ -75,8 +77,8 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
       return _value
     },
     set value(value) {
-      draft = value
-      dye()
+      // TODO 处理完全替换的情况
+      throw new Error('TODO: handle replace root state')
     },
   }
 
@@ -104,13 +106,14 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
     scheduler!(commit)
   }
 
-  function createProxy(subDraft: () => Record<string | number | symbol, any>) {
-    return new Proxy({}, {
+  function createProxy(target: any, subDraft: () => Record<string | number | symbol, any>) {
+    target = Array.isArray(target) ? [] : {}
+    return new Proxy(target, {
       get(_, prop) {
         let value = Reflect.get(subDraft(), prop)
         if (isDraft(value)) {
           let key = cacheKey
-          return createProxy(() => {
+          return createProxy(original(value), () => {
             if (key === cacheKey) {
               return value
             }
