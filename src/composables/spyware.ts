@@ -12,16 +12,19 @@ const STATE_SYMBOL = Symbol('state-symbol')
 export interface SpiedState<T extends Objectish> {
   readonly [STATE_SYMBOL]: true
   [STATE_SOURCE]: T
+  readonly isDirty: boolean
+  readonly commit: () => void
   value: Draft<T>
 }
 
 /**
  * 返回 Spyware State 并记录对它的修改历史。
  */
-export function spyware<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): SpiedState<T> {
+export function spyware<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): SpiedState<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
   let pendingPromise: Promise<void> | undefined
+  let isDirty = false
 
   if (isSpyware(source)) {
     throw new Error('The source has been handled by an state proxy.')
@@ -36,6 +39,19 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
     }
   }
 
+  if (!scheduler) {
+    // 在所有的同步修改完成后，再生成一条修改记录。
+    // 这样的设计更符合实际的使用场景。
+    scheduler = (commit) => {
+      if (pendingPromise)
+        return
+      pendingPromise = Promise.resolve().then(() => {
+        commit()
+        pendingPromise = undefined
+      })
+    }
+  }
+
   const _value = createProxy(() => draft) as Draft<T>
 
   const immerRoot = {
@@ -47,31 +63,45 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
       setSource(value)
     },
 
+    get isDirty() {
+      return isDirty
+    },
+
+    get commit() {
+      return commit
+    },
+
     get value() {
       return _value
     },
     set value(value) {
-      submitDraft(value)
+      draft = value
+      dye()
     },
   }
 
   return immerRoot
 
   function setSource(value: T) {
-    source = value
-    cacheKey += 1
-    draft = createDraft(source)
+    clearCache()
+    draft = createDraft(source = value)
   }
 
-  function submitDraft(value = draft) {
-    // 在所有的同步修改完成后，再生成一条修改记录。
-    // 这样的设计更符合实际的使用场景。
-    if (pendingPromise)
+  function clearCache() {
+    cacheKey += 1
+  }
+
+  function commit() {
+    if (!isDirty)
       return
-    pendingPromise = Promise.resolve().then(() => {
-      setSource(finishDraft(value, patchListener))
-      pendingPromise = undefined
-    })
+    setSource(finishDraft(draft, patchListener))
+    isDirty = false
+  }
+
+  function dye() {
+    isDirty = true
+    clearCache()
+    scheduler!(commit)
   }
 
   function createProxy(subDraft: () => Record<string | number | symbol, any>) {
@@ -93,13 +123,13 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
       set(_, prop, value) {
         const result = Reflect.set(subDraft(), prop, value)
-        submitDraft()
+        dye()
         return result
       },
 
       deleteProperty(_, prop) {
         const result = Reflect.deleteProperty(subDraft(), prop)
-        submitDraft()
+        dye()
         return result
       },
 
@@ -121,7 +151,7 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
       setPrototypeOf(_, proto) {
         const result = Reflect.setPrototypeOf(subDraft(), proto)
-        submitDraft()
+        dye()
         return result
       },
 
@@ -131,7 +161,7 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
       preventExtensions(_) {
         const result = Reflect.preventExtensions(subDraft())
-        submitDraft()
+        dye()
         return result
       },
 
@@ -141,7 +171,7 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
       defineProperty(_, prop, descriptor) {
         const result = Reflect.defineProperty(subDraft(), prop, descriptor)
-        submitDraft()
+        dye()
         return result
       },
     })
@@ -150,8 +180,10 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
 
 /**
  * 将修改记录应用到状态上并修改状态。
+ * 如果状态是脏的，则先提交修改记录。
  */
 export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
+  state.commit()
   let source = state[STATE_SOURCE]
   source = applyPatches(source, patches)
   state[STATE_SOURCE] = source
@@ -159,11 +191,13 @@ export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
 
 /**
  * 克隆传入的状态，并返回一个新状态。新状态与旧状态完全独立，不会互相影响。
+ * 如果状态是脏的，fork 前会先提交修改记录。
  * 之后可以使用 patchState 来重新同步 fork 后的状态之间的差异。
  *
  * 设计单独的 forkState API 将相比于直接将 state 传入 useImmerProxy 带来更清晰的语义。
  */
 export function forkState<T extends Objectish>(state: SpiedState<T>, patchListener?: PatchListener | undefined): SpiedState<T> {
+  state.commit()
   const raw = state[STATE_SOURCE]
   return spyware(raw, patchListener)
 }
