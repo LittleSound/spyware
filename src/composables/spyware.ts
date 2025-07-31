@@ -21,6 +21,7 @@ export interface SpiedState<T extends Objectish> {
 export function spyware<T extends Objectish>(source: T, patchListener?: PatchListener | undefined): SpiedState<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
+  let pendingPromise: Promise<void> | undefined
 
   if (isSpyware(source)) {
     throw new Error('The source has been handled by an state proxy.')
@@ -63,7 +64,14 @@ export function spyware<T extends Objectish>(source: T, patchListener?: PatchLis
   }
 
   function submitDraft(value = draft) {
-    setSource(finishDraft(value, patchListener))
+    // 在所有的同步修改完成后，再生成一条修改记录。
+    // 这样的设计更符合实际的使用场景。
+    if (pendingPromise)
+      return
+    pendingPromise = Promise.resolve().then(() => {
+      setSource(finishDraft(value, patchListener))
+      pendingPromise = undefined
+    })
   }
 
   function createProxy(subDraft: () => Record<string | number | symbol, any>) {
