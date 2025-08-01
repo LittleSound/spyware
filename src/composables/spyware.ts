@@ -1,7 +1,7 @@
 import type { Draft, Objectish, PatchListener } from 'immer'
 import { enablePatches, original } from 'immer'
 
-export type { Patch } from 'immer'
+export type { Patch, Objectish } from 'immer'
 
 enablePatches()
 import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
