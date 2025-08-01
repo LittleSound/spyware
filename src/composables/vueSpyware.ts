@@ -49,26 +49,39 @@ export function createSpywareStore<T extends Objectish>(initialState: T): VueSpy
   const spywareState = spyware(initialState, (patches, inversePatches) => {
     globalListeners.forEach(fn => fn(patches, inversePatches))
 
-    patches.forEach((patch) => {
-      const fullPath = patch.path.join('.')
-      pathSubscribers.get(fullPath)?.forEach(fn => fn(patches, inversePatches))
+    const pathCallbacks = new Map<string, {
+      subscribers: Set<(patches: Patch[], inverse: Patch[]) => void>
+      listeners: Set<() => void>
+      patches: Patch[]
+      inversePatches: Patch[]
+    }>()
 
+    patches.forEach((patch, index) => {
       let partialPath = ''
       patch.path.forEach((part, i) => {
         partialPath = i === 0 ? String(part) : `${partialPath}.${part}`
-        pathSubscribers.get(partialPath)?.forEach(fn => fn(patches, inversePatches))
+
+        if (!pathCallbacks.has(partialPath)) {
+          pathCallbacks.set(partialPath, {
+            subscribers: new Set(),
+            listeners: new Set(),
+            patches: [],
+            inversePatches: [],
+          })
+        }
+
+        const entry = pathCallbacks.get(partialPath)!
+        entry.patches.push(patch)
+        entry.inversePatches.push(inversePatches[index])
+
+        pathSubscribers.get(partialPath)?.forEach(fn => entry.subscribers.add(fn))
+        pathListeners.get(partialPath)?.forEach(fn => entry.listeners.add(fn))
       })
     })
 
-    patches.forEach((patch) => {
-      const path = patch.path.join('.')
-      pathListeners.get(path)?.forEach(fn => fn())
-
-      let partialPath = ''
-      patch.path.forEach((part, i) => {
-        partialPath = i === 0 ? String(part) : `${partialPath}.${part}`
-        pathListeners.get(partialPath)?.forEach(fn => fn())
-      })
+    pathCallbacks.forEach(({ subscribers, listeners, patches: pathPatches, inversePatches: pathInverse }) => {
+      subscribers.forEach(fn => fn(pathPatches, pathInverse))
+      listeners.forEach(fn => fn())
     })
   })
 

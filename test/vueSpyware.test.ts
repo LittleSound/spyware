@@ -103,9 +103,7 @@ describe('vueSpyware', () => {
     })
   })
 
-  it.skip('should subscribe to specific path patches', async () => {
-    // SKIP REASON: Bug in subscribePath - it's not filtering patches correctly
-    // Currently all patches are sent to all path subscribers
+  it('should subscribe to specific path patches', async () => {
     const store = createSpywareStore({
       user: { name: 'John', age: 30 },
       settings: { theme: 'dark' },
@@ -130,13 +128,13 @@ describe('vueSpyware', () => {
     store.state.settings.theme = 'light'
     await nextTick()
 
-    // User subscriber should only get user changes
-    expect(userPatches).toHaveLength(2) // Gets both patches since they're different
-    expect(userPatches.some(p => p.path[0] === 'user')).toBe(true)
+    expect(userPatches).toHaveLength(1)
+    expect(userPatches[0].path).toEqual(['user', 'name'])
+    expect(userPatches[0].value).toBe('Jane')
 
-    // Settings subscriber should only get settings changes
-    expect(settingsPatches).toHaveLength(2) // Gets both patches
-    expect(settingsPatches.some(p => p.path[0] === 'settings')).toBe(true)
+    expect(settingsPatches).toHaveLength(1)
+    expect(settingsPatches[0].path).toEqual(['settings', 'theme'])
+    expect(settingsPatches[0].value).toBe('light')
   })
 
   it('should auto-cleanup refs when scope is disposed', async () => {
@@ -249,12 +247,12 @@ describe('vueSpyware', () => {
 
       // Watch for changes
       scope.run(() => {
-        userRef.value // Access to establish dependency
+        void userRef.value // Access to establish dependency
         userTriggered()
       })
 
       scope.run(() => {
-        profileRef.value // Access to establish dependency
+        void profileRef.value // Access to establish dependency
         profileTriggered()
       })
     })
