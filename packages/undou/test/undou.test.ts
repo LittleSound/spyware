@@ -1,6 +1,6 @@
 import type { Patch } from '../src/index'
 import { describe, expect, it } from 'vitest'
-import { forkState, isSpyware, patchState, undou } from '../src/undou'
+import { forkState, isUndou, patchState, undou } from '../src/undou'
 
 function nextTick() {
   return Promise.resolve().then(() => {})
@@ -18,7 +18,7 @@ describe('undou', () => {
       inverseChanges.push(...inversePatches)
     })
 
-    expect(isSpyware(state)).toBe(true)
+    expect(isUndou(state)).toBe(true)
 
     expect(state.value).toMatchInlineSnapshot(`
       {
@@ -105,7 +105,7 @@ describe('undou', () => {
       forkedChanges.push(...patches)
       forkedInverseChanges.push(...inversePatches)
     })
-    expect(isSpyware(forkedState)).toBe(true)
+    expect(isUndou(forkedState)).toBe(true)
 
     expect(state.value.foo).toBe(101)
     expect(forkedState.value.foo).toBe(101)

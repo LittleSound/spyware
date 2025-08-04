@@ -7,7 +7,7 @@ import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
 const STATE_SOURCE = Symbol('state-source')
 const STATE_SYMBOL = Symbol('state-symbol')
 
-export interface SpiedState<T extends Objectish> {
+export interface UndouState<T extends Objectish> {
   readonly [STATE_SYMBOL]: true
   [STATE_SOURCE]: T
   readonly isDirty: boolean
@@ -20,13 +20,13 @@ export interface SpiedState<T extends Objectish> {
 /**
  * 返回 undou State 并记录对它的修改历史。
  */
-export function undou<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): SpiedState<T> {
+export function undou<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): UndouState<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
   let pendingPromise: Promise<void> | undefined
   let isDirty = false
 
-  if (isSpyware(source)) {
+  if (isUndou(source)) {
     throw new Error('The source has been handled by an state proxy.')
   }
 
@@ -183,7 +183,7 @@ export function undou<T extends Objectish>(source: T, patchListener?: PatchListe
  * 将修改记录应用到状态上并修改状态。
  * 如果状态是脏的，则先提交修改记录。
  */
-export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
+export function patchState(state: UndouState<Objectish>, patches: Patch[]) {
   state.commit()
   let source = state[STATE_SOURCE]
   source = applyPatches(source, patches)
@@ -197,15 +197,15 @@ export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
  *
  * 设计单独的 forkState API 将相比于直接将 state 传入 useImmerProxy 带来更清晰的语义。
  */
-export function forkState<T extends Objectish>(state: SpiedState<T>, patchListener?: PatchListener | undefined): SpiedState<T> {
+export function forkState<T extends Objectish>(state: UndouState<T>, patchListener?: PatchListener | undefined): UndouState<T> {
   state.commit()
   const raw = state[STATE_SOURCE]
   return undou(raw, patchListener)
 }
 
 /**
- * 判断一个值是不是 Spyware State
+ * 判断一个值是不是 Undou State
  */
-export function isSpyware(value: any): value is SpiedState<Objectish> {
+export function isUndou(value: any): value is UndouState<Objectish> {
   return typeof value === 'object' && value !== null && (value as any)[STATE_SYMBOL] === true
 }

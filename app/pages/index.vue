@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Patch } from 'undou'
 import { patchState, undou } from 'undou'
+import { version } from '~/../package.json'
 
 interface PatchItem {
   direct: Patch[]
@@ -10,9 +11,9 @@ const undoStack = ref<PatchItem[]>([])
 const redoStack = ref<PatchItem[]>([])
 
 const state = undou({
-  name: 'hello, spy!',
-  description: 'the project being developed by littlesound.',
-  version: '0.0.1',
+  name: 'Hello, Unodu!',
+  description: 'the project being developed by Rizumu aka LittleSound.',
+  version,
 }, (patches, inversePatches) => {
   undoStack.value.push(markRaw({
     direct: patches,
@@ -39,16 +40,16 @@ function redo() {
   patchState(state, patch.direct)
 }
 
-;(window as any).spywareState = state
+;(window as any).undouState = state
 </script>
 
 <template>
   <div p10 flex="~ col gap-10">
     <div>
       <h1 text-xl font-900>
-        Spyware
+        Undou
       </h1>
-      <p>use <span class="text-blue-300">window.spywareState.value</span> in console to play with undo/redo</p>
+      <p>use <span class="text-blue-300">window.undouState.value</span> in console to play with undo/redo</p>
     </div>
 
     <div flex="~ gap-2">
@@ -64,7 +65,7 @@ function redo() {
       <h2 text-lg font-100>
         State
       </h2>
-      <pre class="text-sm text-blue-300 font-mono whitespace-pre-wrap break-words" v-text="JSON.stringify(showState, null, 2)" />
+      <pre class="text-sm text-blue-300 font-mono whitespace-pre-wrap break-words" v-text="JSON.stringify(showState.value, null, 2)" />
     </div>
 
     <div flex="~ col gap-5">
