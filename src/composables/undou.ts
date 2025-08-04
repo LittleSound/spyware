@@ -20,9 +20,9 @@ export interface SpiedState<T extends Objectish> {
 // TODO 为了正确跟踪 Array 的 push，pop 等操作。为 Array 的方法增加包装器 "Array Instrumentations"。
 
 /**
- * 返回 Spyware State 并记录对它的修改历史。
+ * 返回 undou State 并记录对它的修改历史。
  */
-export function spyware<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): SpiedState<T> {
+export function undou<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): SpiedState<T> {
   let draft = createDraft(source) as Record<string | number | symbol, any>
   let cacheKey = 0
   let pendingPromise: Promise<void> | undefined
@@ -202,7 +202,7 @@ export function patchState(state: SpiedState<Objectish>, patches: Patch[]) {
 export function forkState<T extends Objectish>(state: SpiedState<T>, patchListener?: PatchListener | undefined): SpiedState<T> {
   state.commit()
   const raw = state[STATE_SOURCE]
-  return spyware(raw, patchListener)
+  return undou(raw, patchListener)
 }
 
 /**

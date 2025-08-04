@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { forkState, isSpyware, spyware } from '~/composables/spyware'
+import { forkState, isSpyware, undou } from '~/composables/undou'
 
 function nextTick() {
   return Promise.resolve().then(() => {})
 }
 
-describe('spyware', () => {
+describe('undou', () => {
   it('should works', async () => {
     const changes: Patch[] = []
     const inverseChanges: Patch[] = []
 
-    const state = spyware({
+    const state = undou({
       foo: { bar: 'baz' },
     }, (patches, inversePatches) => {
       changes.push(...patches)
@@ -66,7 +66,7 @@ describe('spyware', () => {
   it('should patch state', async () => {
     const changes: Patch[] = []
     const inverseChanges: Patch[] = []
-    const state = spyware({
+    const state = undou({
       foo: 'bar',
     }, (patches, inversePatches) => {
       changes.push(...patches)
@@ -87,7 +87,7 @@ describe('spyware', () => {
   it('should fork state', async () => {
     const changes: Patch[] = []
     const inverseChanges: Patch[] = []
-    const state = spyware({
+    const state = undou({
       foo: 100,
       bar: 200,
     }, (patches, inversePatches) => {
@@ -275,7 +275,7 @@ describe('spyware', () => {
   it('should works with array', async () => {
     const changes: Patch[] = []
     const inverseChanges: Patch[] = []
-    const state = spyware({
+    const state = undou({
       foo: [1, 2],
     }, (patches, inversePatches) => {
       changes.push(...patches)

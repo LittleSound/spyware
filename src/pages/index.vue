@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Patch } from '~/composables/spyware'
-import { patchState, spyware } from '~/composables/spyware'
+import type { Patch } from '~/composables/undou'
+import { patchState, undou } from '~/composables/undou'
 
 interface PatchItem {
   direct: Patch[]
@@ -9,7 +9,7 @@ interface PatchItem {
 const undoStack = ref<PatchItem[]>([])
 const redoStack = ref<PatchItem[]>([])
 
-const state = spyware({
+const state = undou({
   name: 'hello, spy!',
   description: 'the project being developed by littlesound.',
   version: '0.0.1',

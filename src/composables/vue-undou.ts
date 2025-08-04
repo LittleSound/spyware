@@ -1,13 +1,13 @@
 import type { Ref } from 'vue'
-import type { Objectish, Patch } from './spyware'
+import type { Objectish, Patch } from './undou'
 import { customRef, getCurrentScope, onScopeDispose } from 'vue'
-import { spyware } from './spyware'
+import { undou } from './undou'
 
 export interface VueSpywareStore<T extends Objectish> {
   state: T
   $ref: <K>(path: string) => Ref<K>
   toRefs: <K extends Record<string, string>>(paths: K) => { [P in keyof K]: Ref<unknown> }
-  readonly spyware: ReturnType<typeof spyware<T>>
+  readonly undou: ReturnType<typeof undou<T>>
   subscribe: (callback: (patches: Patch[], inversePatches: Patch[]) => void) => () => void
   subscribePath: (path: string, callback: (patches: Patch[], inversePatches: Patch[]) => void) => () => void
 }
@@ -46,7 +46,7 @@ export function createSpywareStore<T extends Objectish>(initialState: T): VueSpy
   const globalListeners = new Set<(patches: Patch[], inverse: Patch[]) => void>()
   const pathSubscribers = new Map<string, Set<(patches: Patch[], inverse: Patch[]) => void>>()
 
-  const spywareState = spyware(initialState, (patches, inversePatches) => {
+  const spywareState = undou(initialState, (patches, inversePatches) => {
     globalListeners.forEach(fn => fn(patches, inversePatches))
 
     const pathCallbacks = new Map<string, {
@@ -87,7 +87,7 @@ export function createSpywareStore<T extends Objectish>(initialState: T): VueSpy
 
   const store: VueSpywareStore<T> = {
     get state() {
-      return spywareState.value
+      return spywareState.value as T
     },
 
     $ref<K>(path: string) {
@@ -137,7 +137,7 @@ export function createSpywareStore<T extends Objectish>(initialState: T): VueSpy
       return result as { [P in keyof K]: Ref<unknown> }
     },
 
-    get spyware() {
+    get undou() {
       return spywareState
     },
 

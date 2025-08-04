@@ -1,7 +1,7 @@
-import type { Patch } from '~/composables/spyware'
+import type { Patch } from '~/composables/undou'
 import { describe, expect, it, vi } from 'vitest'
 import { effectScope, isRef, nextTick } from 'vue'
-import { createSpywareStore, useSpywareStore } from '~/composables/vueSpyware'
+import { createSpywareStore, useSpywareStore } from '~/composables/vue-undou'
 
 describe('vueSpyware', () => {
   it('should create a store with initial state', () => {
@@ -186,7 +186,7 @@ describe('vueSpyware', () => {
   })
 
   it.skip('should handle array operations', async () => {
-    // SKIP REASON: Array support is incomplete - see TODO in spyware.ts line 20
+    // SKIP REASON: Array support is incomplete - see TODO in undou.ts line 20
     const store = createSpywareStore({
       items: [1, 2, 3],
     })
