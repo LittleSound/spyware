@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Patch } from '~/composables/undou'
-import { patchState, undou } from '~/composables/undou'
+import type { Patch } from 'undou'
+import { patchState, undou } from 'undou'
 
 interface PatchItem {
   direct: Patch[]

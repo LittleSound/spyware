@@ -1,5 +1,6 @@
+import type { Patch } from '../src/index'
 import { describe, expect, it } from 'vitest'
-import { forkState, isSpyware, undou } from '~/composables/undou'
+import { forkState, isSpyware, patchState, undou } from '../src/undou'
 
 function nextTick() {
   return Promise.resolve().then(() => {})

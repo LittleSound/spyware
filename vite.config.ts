@@ -14,11 +14,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '~/': `${path.resolve(__dirname, 'app')}/`,
+      'undou': `${path.resolve(__dirname, 'packages/undou/src/index.ts')}`,
     },
   },
   plugins: [
     // https://github.com/posva/unplugin-vue-router
-    VueRouter(),
+    VueRouter({
+      routesFolder: 'app/pages',
+    }),
 
     VueMacros({
       defineOptions: false,

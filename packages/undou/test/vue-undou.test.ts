@@ -1,7 +1,7 @@
-import type { Patch } from '~/composables/undou'
+import type { Patch } from '../src/index'
 import { describe, expect, it, vi } from 'vitest'
 import { effectScope, isRef, nextTick } from 'vue'
-import { createSpywareStore, useSpywareStore } from '~/composables/vue-undou'
+import { createSpywareStore, useSpywareStore } from '../src/vue-undou'
 
 describe('vueSpyware', () => {
   it('should create a store with initial state', () => {

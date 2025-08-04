@@ -1,5 +1,5 @@
+import type { Objectish, Patch } from 'immer'
 import type { Ref } from 'vue'
-import type { Objectish, Patch } from './undou'
 import { customRef, getCurrentScope, onScopeDispose } from 'vue'
 import { undou } from './undou'
 
