@@ -13,7 +13,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   resolve: {
     alias: {
-      '~/': `${path.resolve(__dirname, 'src')}/`,
+      '~/': `${path.resolve(__dirname, 'app')}/`,
     },
   },
   plugins: [
@@ -46,7 +46,7 @@ export default defineConfig({
       ],
       dts: true,
       dirs: [
-        './src/composables',
+        './app/composables',
       ],
       vueTemplate: true,
     }),

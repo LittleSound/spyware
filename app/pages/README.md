@@ -5,7 +5,7 @@ Check out [`unplugin-vue-router`](https://github.com/posva/unplugin-vue-router) 
 
 ### Path Aliasing
 
-`~/` is aliased to `./src/` folder.
+`~/` is aliased to `./app/` folder.
 
 For example, instead of having
 
