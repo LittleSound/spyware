@@ -14,7 +14,7 @@
     "build:app": "vite build",
     "preview": "vite preview",
     "postinstall": "npx simple-git-hooks",
-    "publish": "pnpx bumpp -r --no-push && pnpm build && pnpm publish -F './packages/*'"
+    "publish": "pnpx bumpp -r --no-push && pnpm build && pnpm publish -F './packages/*' && git push"
   },
   "dependencies": {
     "@vueuse/core": "catalog:frontend",
