@@ -4,18 +4,19 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "build": "vite build",
     "dev": "vite --port 3333 --open",
     "lint": "eslint .",
     "typecheck": "vue-tsc",
-    "preview": "vite preview",
     "test": "vitest",
     "up": "taze major -I",
+    "build": "pnpm build:packages && pnpm build:app",
+    "build:packages": "pnpm -F './packages/*' run build",
+    "build:app": "vite build",
+    "preview": "vite preview",
     "postinstall": "npx simple-git-hooks"
   },
   "dependencies": {
     "@vueuse/core": "catalog:frontend",
-    "immer": "catalog:prod",
     "tsdown": "catalog:build",
     "vue": "catalog:frontend",
     "vue-router": "catalog:frontend"
