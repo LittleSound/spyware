@@ -135,18 +135,31 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
   function createProxy(target: any, subDraft: () => Record<string | number | symbol, any>) {
     target = Array.isArray(target) ? [] : {}
     return new Proxy(target, {
-      get(_, prop) {
+      get(ctx, prop) {
         let value = Reflect.get(subDraft(), prop)
+
         if (isDraft(value)) {
+          let proxyCatch = ctx[prop] as { source: unknown, proxy: unknown } | undefined
+          const originalValue = original(value)
+
+          if (proxyCatch && proxyCatch.source === originalValue)
+            return proxyCatch.proxy
+
           let key = cacheKey
-          return createProxy(original(value), () => {
-            if (key === cacheKey) {
-              return value
-            }
-            key = cacheKey
-            return value = Reflect.get(subDraft(), prop)
-          })
+          ctx[prop] = proxyCatch = {
+            source: originalValue,
+            proxy: createProxy(originalValue, () => {
+              if (key === cacheKey) {
+                return value
+              }
+              key = cacheKey
+              return value = Reflect.get(subDraft(), prop)
+            }),
+          }
+
+          return proxyCatch.proxy
         }
+
         return value
       },
 

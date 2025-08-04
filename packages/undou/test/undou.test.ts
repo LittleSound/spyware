@@ -460,4 +460,19 @@ describe('undou', () => {
       ]
     `)
   })
+
+  it('should be equal when the state is unchanged', async () => {
+    const state = undou({
+      foo: { bar: 'baz' },
+    })
+
+    expect(state.value.foo).toBe(state.value.foo)
+
+    state.value.foo.bar = 'qux'
+    expect(state.value.foo).toBe(state.value.foo)
+
+    const oldFoo = state.value.foo
+    state.value.foo = { bar: 'baz' }
+    expect(state.value.foo).not.toBe(oldFoo)
+  })
 })
