@@ -6,16 +6,25 @@ import { applyPatches, createDraft, finishDraft, isDraft, produce } from 'immer'
 
 const STATE_SOURCE = Symbol('state-source')
 const STATE_SYMBOL = Symbol('state-symbol')
+const STATE_PROXY_SYMBOL = Symbol('state-proxy-symbol')
+const STATE_DRAFT = Symbol('state-draft')
 const INVALID = {} as const as any
-
-type UndouValue<T> = T extends Objectish ? Draft<T> : T
 
 export interface UndouState<T> {
   readonly [STATE_SYMBOL]: true
   [STATE_SOURCE]: T
   readonly isDirty: boolean
   readonly commit: () => void
-  value: UndouValue<T>
+  value: UndouDraft<T>
+}
+
+export type UndouDraft<T> = T extends Objectish ? UndouProxy<T> : T
+type UndouProxy<T, S = Draft<T>> = {
+  [K in keyof S]: UndouDraft<S[K]>
+} & Partial<UndouProxyInternal<T>>
+interface UndouProxyInternal<T> {
+  [STATE_PROXY_SYMBOL]: true
+  [STATE_DRAFT]: Draft<T>
 }
 
 // TODO 为了正确跟踪 Array 的 push，pop 等操作。为 Array 的方法增加包装器 "Array Instrumentations"。
@@ -28,7 +37,7 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
     throw new Error('The source has been handled by an state proxy.')
   }
 
-  let proxiedValue: UndouValue<T> = INVALID
+  let proxiedValue: UndouDraft<T> = INVALID
   let draft: Record<string | number | symbol, any>
   let cacheKey = 0
   let pendingPromise: Promise<void> | undefined
@@ -101,10 +110,10 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
         if (proxiedValue === INVALID)
           initDraftAndProxy()
         return draft
-      }) as UndouValue<T>
+      }) as UndouDraft<T>
     }
     else {
-      proxiedValue = source as UndouValue<T>
+      proxiedValue = source as UndouDraft<T>
     }
   }
 
@@ -136,6 +145,13 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
     target = Array.isArray(target) ? [] : {}
     return new Proxy(target, {
       get(ctx, prop) {
+        if (prop === STATE_PROXY_SYMBOL) {
+          return true
+        }
+        if (prop === STATE_DRAFT) {
+          return subDraft()
+        }
+
         let value = Reflect.get(subDraft(), prop)
 
         if (isDraft(value)) {
@@ -164,6 +180,9 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
       },
 
       set(_, prop, value) {
+        if (isUndouProxy(value))
+          value = value[STATE_DRAFT]
+
         const result = Reflect.set(subDraft(), prop, value)
         dye()
         return result
@@ -247,8 +266,12 @@ export function forkState<T>(state: UndouState<T>, patchListener?: PatchListener
 /**
  * 判断一个值是不是 Undou State
  */
-export function isUndou<T>(value: any): value is UndouState<T> {
-  return typeof value === 'object' && value !== null && (value as any)[STATE_SYMBOL] === true
+export function isUndou<T>(value: UndouState<T> | unknown): value is UndouState<T> {
+  return isObject(value) && (value as any)[STATE_SYMBOL] === true
+}
+
+function isUndouProxy<T>(value: UndouProxy<T> & UndouProxyInternal<T> | unknown): value is UndouProxy<T> & UndouProxyInternal<T> {
+  return isObject(value) && (value as any)[STATE_PROXY_SYMBOL] === true
 }
 
 function isObject(value: any): value is Objectish {

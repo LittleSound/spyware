@@ -475,4 +475,69 @@ describe('undou', () => {
     state.value.foo = { bar: 'baz' }
     expect(state.value.foo).not.toBe(oldFoo)
   })
+
+  it('should move the property of the state', async () => {
+    const changes: Patch[] = []
+    const inverseChanges: Patch[] = []
+    const state = undou({
+      foo: { a: 1 },
+      bar: {} as { a?: number },
+    }, (patches, inversePatches) => {
+      changes.push(...patches)
+      inverseChanges.push(...inversePatches)
+    })
+
+    expect(state.value.foo.a).toBe(1)
+
+    await nextTick()
+
+    state.value.bar = state.value.foo
+    expect(state.value.bar).toEqual({ a: 1 })
+
+    state.value.bar.a = 2
+    expect(state.value.foo).toEqual({ a: 2 })
+    expect(state.value.bar).toEqual({ a: 2 })
+
+    await nextTick()
+    expect(changes).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [
+            "foo",
+            "a",
+          ],
+          "value": 2,
+        },
+        {
+          "op": "replace",
+          "path": [
+            "bar",
+          ],
+          "value": {
+            "a": 2,
+          },
+        },
+      ]
+    `)
+    expect(inverseChanges).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [
+            "foo",
+            "a",
+          ],
+          "value": 1,
+        },
+        {
+          "op": "replace",
+          "path": [
+            "bar",
+          ],
+          "value": {},
+        },
+      ]
+    `)
+  })
 })
