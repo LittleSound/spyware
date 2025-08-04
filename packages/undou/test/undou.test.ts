@@ -64,6 +64,43 @@ describe('undou', () => {
     `)
   })
 
+  it('should works with basic types', async () => {
+    const changes: Patch[] = []
+    const inverseChanges: Patch[] = []
+    const state = undou('foo', (patches, inversePatches) => {
+      changes.push(...patches)
+      inverseChanges.push(...inversePatches)
+    })
+
+    expect(state.value).toBe('foo')
+
+    state.value = 'bar'
+    expect(state.value).toBe('bar')
+
+    await nextTick()
+    expect(changes).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [],
+          "value": "bar",
+        },
+      ]
+    `)
+    expect(inverseChanges).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [],
+          "value": "foo",
+        },
+      ]
+    `)
+
+    patchState(state, inverseChanges)
+    expect(state.value).toBe('foo')
+  })
+
   it('should patch state', async () => {
     const changes: Patch[] = []
     const inverseChanges: Patch[] = []
