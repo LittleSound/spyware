@@ -358,4 +358,69 @@ describe('undou', () => {
       ]
     `)
   })
+
+  it('should replace root state', async () => {
+    const changes: Patch[] = []
+    const inverseChanges: Patch[] = []
+    const state = undou({
+      foo: 100,
+    } as any, (patches, inversePatches) => {
+      changes.push(...patches)
+      inverseChanges.push(...inversePatches)
+    })
+
+    state.value = {
+      bar: 200,
+    }
+
+    expect(state.value.foo).toBe(undefined)
+    expect(state.value.bar).toBe(200)
+
+    await nextTick()
+
+    state.value = undefined
+    expect(state.value).toBe(undefined)
+
+    await nextTick()
+
+    state.value = {
+      bar: 200,
+    }
+    state.value.bar = 300
+
+    await nextTick()
+    expect(state.value.foo).toBe(undefined)
+    expect(state.value.bar).toBe(300)
+
+    expect(changes).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [],
+          "value": {
+            "bar": 200,
+          },
+        },
+        {
+          "op": "replace",
+          "path": [],
+          "value": undefined,
+        },
+        {
+          "op": "replace",
+          "path": [],
+          "value": {
+            "bar": 200,
+          },
+        },
+        {
+          "op": "replace",
+          "path": [
+            "bar",
+          ],
+          "value": 300,
+        },
+      ]
+    `)
+  })
 })

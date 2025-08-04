@@ -1,18 +1,21 @@
 import type { Draft, Objectish, Patch, PatchListener } from 'immer'
-import { enablePatches, original } from 'immer'
+import { enablePatches, nothing, original } from 'immer'
 
 enablePatches()
-import { applyPatches, createDraft, finishDraft, isDraft } from 'immer'
+import { applyPatches, createDraft, finishDraft, isDraft, produce } from 'immer'
 
 const STATE_SOURCE = Symbol('state-source')
 const STATE_SYMBOL = Symbol('state-symbol')
+const INVALID = {} as const as any
 
-export interface UndouState<T extends Objectish> {
+type UndouValue<T> = T extends Objectish ? Draft<T> : T
+
+export interface UndouState<T> {
   readonly [STATE_SYMBOL]: true
   [STATE_SOURCE]: T
   readonly isDirty: boolean
   readonly commit: () => void
-  value: Draft<T>
+  value: UndouValue<T>
 }
 
 // TODO 为了正确跟踪 Array 的 push，pop 等操作。为 Array 的方法增加包装器 "Array Instrumentations"。
@@ -20,15 +23,16 @@ export interface UndouState<T extends Objectish> {
 /**
  * 返回 undou State 并记录对它的修改历史。
  */
-export function undou<T extends Objectish>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): UndouState<T> {
-  let draft = createDraft(source) as Record<string | number | symbol, any>
-  let cacheKey = 0
-  let pendingPromise: Promise<void> | undefined
-  let isDirty = false
-
+export function undou<T>(source: T, patchListener?: PatchListener | undefined, scheduler?: (commit: () => void) => void): UndouState<T> {
   if (isUndou(source)) {
     throw new Error('The source has been handled by an state proxy.')
   }
+
+  let proxiedValue: UndouValue<T> = INVALID
+  let draft: Record<string | number | symbol, any>
+  let cacheKey = 0
+  let pendingPromise: Promise<void> | undefined
+  let isDirty = false
 
   if (patchListener) {
     const _patchListener = patchListener
@@ -52,14 +56,13 @@ export function undou<T extends Objectish>(source: T, patchListener?: PatchListe
     }
   }
 
-  const _value = createProxy(source, () => draft) as Draft<T>
-
   const immerRoot = {
     [STATE_SYMBOL]: true as const,
     get [STATE_SOURCE]() {
       return source
     },
     set [STATE_SOURCE](value) {
+      clearCache()
       setSource(value)
     },
 
@@ -72,19 +75,43 @@ export function undou<T extends Objectish>(source: T, patchListener?: PatchListe
     },
 
     get value() {
-      return _value
+      if (proxiedValue === INVALID) {
+        initDraftAndProxy()
+      }
+
+      return proxiedValue
     },
-    set value(value) {
-      // TODO 处理完全替换的情况
-      throw new Error('TODO: handle replace root state')
+    set value(newVal) {
+      isDirty = false
+      clearCache()
+
+      setSource(produce(source, (_) => {
+        return (newVal === undefined ? nothing : newVal) as any
+      }, patchListener))
     },
   }
 
   return immerRoot
 
-  function setSource(value: T) {
-    clearCache()
-    draft = createDraft(source = value)
+  function initDraftAndProxy() {
+    if (isObject(source)) {
+      draft = createDraft(source)
+      clearCache()
+      proxiedValue = createProxy(source, () => {
+        if (proxiedValue === INVALID)
+          initDraftAndProxy()
+        return draft
+      }) as UndouValue<T>
+    }
+    else {
+      proxiedValue = source as UndouValue<T>
+    }
+  }
+
+  function setSource<S extends T>(value: S) {
+    source = value
+    proxiedValue = INVALID
+    draft = {}
   }
 
   function clearCache() {
@@ -95,6 +122,7 @@ export function undou<T extends Objectish>(source: T, patchListener?: PatchListe
     if (!isDirty)
       return
     setSource(finishDraft(draft, patchListener))
+    clearCache()
     isDirty = false
   }
 
@@ -183,7 +211,7 @@ export function undou<T extends Objectish>(source: T, patchListener?: PatchListe
  * 将修改记录应用到状态上并修改状态。
  * 如果状态是脏的，则先提交修改记录。
  */
-export function patchState(state: UndouState<Objectish>, patches: Patch[]) {
+export function patchState(state: UndouState<any>, patches: Patch[]) {
   state.commit()
   let source = state[STATE_SOURCE]
   source = applyPatches(source, patches)
@@ -197,7 +225,7 @@ export function patchState(state: UndouState<Objectish>, patches: Patch[]) {
  *
  * 设计单独的 forkState API 将相比于直接将 state 传入 useImmerProxy 带来更清晰的语义。
  */
-export function forkState<T extends Objectish>(state: UndouState<T>, patchListener?: PatchListener | undefined): UndouState<T> {
+export function forkState<T>(state: UndouState<T>, patchListener?: PatchListener | undefined): UndouState<T> {
   state.commit()
   const raw = state[STATE_SOURCE]
   return undou(raw, patchListener)
@@ -206,6 +234,10 @@ export function forkState<T extends Objectish>(state: UndouState<T>, patchListen
 /**
  * 判断一个值是不是 Undou State
  */
-export function isUndou(value: any): value is UndouState<Objectish> {
+export function isUndou<T>(value: any): value is UndouState<T> {
   return typeof value === 'object' && value !== null && (value as any)[STATE_SYMBOL] === true
+}
+
+function isObject(value: any): value is Objectish {
+  return typeof value === 'object' && value !== null
 }

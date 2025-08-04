@@ -10,6 +10,7 @@ If you don’t know how to use it, you can take a look at the [unit tests](./tes
 
 #### Important
 
+- [x] Basic types at the root
 - [x] Object
 - [ ] Array
   - [x] on async scheduler
