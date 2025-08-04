@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
@@ -13,7 +13,8 @@
     "build:packages": "pnpm -F './packages/*' run build",
     "build:app": "vite build",
     "preview": "vite preview",
-    "postinstall": "npx simple-git-hooks"
+    "postinstall": "npx simple-git-hooks",
+    "publish": "pnpx bumpp -r --no-push && pnpm build && pnpm publish -F './packages/*'"
   },
   "dependencies": {
     "@vueuse/core": "catalog:frontend",

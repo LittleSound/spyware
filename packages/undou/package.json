@@ -1,6 +1,6 @@
 {
   "name": "undou",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Track and patch state change history. Used for scenarios similar to undo/redo functionality. The current implementation is based on immer",
   "author": "Rizumu Ayaka <rizumu@ayaka.moe>",
   "license": "MIT",
