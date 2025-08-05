@@ -203,11 +203,7 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
       },
 
       getOwnPropertyDescriptor(_, prop) {
-        const descriptor = Reflect.getOwnPropertyDescriptor(subDraft(), prop)
-        if (descriptor && prop === 'length' && Array.isArray(subDraft())) {
-          return { ...descriptor, configurable: true }
-        }
-        return descriptor
+        return Reflect.getOwnPropertyDescriptor(subDraft(), prop)
       },
 
       setPrototypeOf(_, proto) {

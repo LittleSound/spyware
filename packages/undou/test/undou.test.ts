@@ -540,4 +540,22 @@ describe('undou', () => {
       ]
     `)
   })
+
+  it('should works with array push and pop', async () => {
+    const state = undou<Array<number | number[]>>([1])
+    state.value.push(2)
+    expect(state.value).toEqual([1, 2])
+
+    await nextTick()
+    state.value.pop()
+    expect(state.value).toEqual([1])
+
+    await nextTick()
+    state.value[0] = [1]
+    expect(state.value).toEqual([[1]])
+
+    await nextTick()
+    state.value[0].push(2)
+    expect(state.value).toEqual([[1, 2]])
+  })
 })
