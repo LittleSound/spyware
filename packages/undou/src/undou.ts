@@ -39,7 +39,7 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
 
   let proxiedValue: UndouDraft<T> = INVALID
   let draft: Record<string | number | symbol, any>
-  let cacheKey = 0
+  let draftCacheKey = 0
   let pendingPromise: Promise<void> | undefined
   let isDirty = false
 
@@ -71,7 +71,6 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
       return source
     },
     set [STATE_SOURCE](value) {
-      clearCache()
       setSource(value)
     },
 
@@ -91,12 +90,10 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
       return proxiedValue
     },
     set value(newVal) {
-      isDirty = false
-      clearCache()
-
       setSource(produce(source, (_) => {
         return (newVal === undefined ? nothing : newVal) as any
       }, patchListener))
+      isDirty = false
     },
   }
 
@@ -105,7 +102,6 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
   function initDraftAndProxy() {
     if (isObject(source)) {
       draft = createDraft(source)
-      clearCache()
       proxiedValue = createProxy(source, () => {
         if (proxiedValue === INVALID)
           initDraftAndProxy()
@@ -121,23 +117,23 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
     source = value
     proxiedValue = INVALID
     draft = {}
+    clearDraftCache()
   }
 
-  function clearCache() {
-    cacheKey += 1
+  function clearDraftCache() {
+    draftCacheKey += 1
   }
 
   function commit() {
     if (!isDirty)
       return
     setSource(finishDraft(draft, patchListener))
-    clearCache()
+    clearDraftCache()
     isDirty = false
   }
 
   function dye() {
     isDirty = true
-    clearCache()
     scheduler!(commit)
   }
 
@@ -161,15 +157,18 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
           if (proxyCatch && proxyCatch.source === originalValue)
             return proxyCatch.proxy
 
-          let key = cacheKey
+          let key = draftCacheKey
           ctx[prop] = proxyCatch = {
             source: originalValue,
             proxy: createProxy(originalValue, () => {
-              if (key === cacheKey) {
+              if (key === draftCacheKey) {
                 return value
               }
-              key = cacheKey
-              return value = Reflect.get(subDraft(), prop)
+              key = draftCacheKey
+              const newDraft = subDraft()
+              if (newDraft)
+                value = Reflect.get(newDraft, prop)
+              return value
             }),
           }
 

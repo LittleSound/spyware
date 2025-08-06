@@ -185,8 +185,7 @@ describe('vueSpyware', () => {
     expect(callback).toHaveBeenCalledTimes(1) // Still 1, not 2
   })
 
-  it.skip('should handle array operations', async () => {
-    // SKIP REASON: Array support is incomplete - see TODO in undou.ts line 20
+  it('should handle array operations', async () => {
     const store = createSpywareStore({
       items: [1, 2, 3],
     })

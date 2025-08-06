@@ -558,4 +558,23 @@ describe('undou', () => {
     state.value[0].push(2)
     expect(state.value).toEqual([[1, 2]])
   })
+
+  it('should works with array.filter', async () => {
+    const state = undou({
+      foo: [{ a: 1 }, { a: 2 }, { a: 3 }],
+    })
+
+    state.value.foo = state.value.foo.filter(item => item.a > 1)
+    expect(state.value.foo).toEqual([{ a: 2 }, { a: 3 }])
+
+    await nextTick()
+    expect(state.value.foo).toEqual([{ a: 2 }, { a: 3 }])
+
+    state.value.foo = state.value.foo.filter(item => item.a > 2)
+    expect(state.value.foo).toEqual([{ a: 3 }])
+
+    await nextTick()
+    state.value.foo[0].a = 100
+    expect(state.value.foo).toEqual([{ a: 100 }])
+  })
 })
