@@ -1,5 +1,5 @@
 import type { Draft, Objectish, Patch, PatchListener } from 'immer'
-import { enablePatches, nothing, original } from 'immer'
+import { current, enablePatches, nothing, original } from 'immer'
 
 enablePatches()
 import { applyPatches, createDraft, finishDraft, isDraft, produce } from 'immer'
@@ -28,6 +28,8 @@ interface UndouProxyInternal<T> {
 }
 
 // TODO 为了正确跟踪 Array 的 push，pop 等操作。为 Array 的方法增加包装器 "Array Instrumentations"。
+
+const proxyCurrentMap = new WeakMap<UndouProxy<unknown>, unknown>()
 
 /**
  * 返回 undou State 并记录对它的修改历史。
@@ -91,6 +93,8 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
       return proxiedValue
     },
     set value(newVal) {
+      if (draft)
+        proxyCurrentMap.set(proxiedValue as UndouProxy<T>, current(draft))
       proxiedValue = INVALID
       setSource(produce(source, (_) => {
         return (newVal === undefined ? nothing : newVal) as any
@@ -103,16 +107,15 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
 
   function initProxy() {
     if (isObject(source)) {
-      let catchedDraft: typeof draft
       const initDraft = () => {
-        catchedDraft = draft = createDraft(source as Objectish)
+        draft = createDraft(source as Objectish)
       }
       initDraft()
 
-      const theSelf = proxiedValue = createProxy(source, () => {
+      const theSelf: UndouDraft<T> = proxiedValue = createProxy(source, () => {
         // 如果 proxiedValue 被修改了，则说明根被替换了。这个 proxy 就已经失效了。所以不要在追踪这个 proxy 的 draft 了。
         if (proxiedValue !== theSelf)
-          return catchedDraft!
+          return proxyCurrentMap.get(theSelf as any) as any
         if (!draft)
           initDraft()
         return draft!
@@ -148,19 +151,25 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
 
   interface ProxyCatch {
     enable: boolean
-    proxy: unknown
+    proxy: UndouProxy<unknown>
   }
 
-  function clearProxyCatch(ctx: Record<string | number | symbol, ProxyCatch | undefined>, prop: string | number | symbol) {
-    const proxyCatch = ctx[prop]
-    if (proxyCatch) {
-      proxyCatch.enable = false
-      ctx[prop] = undefined
-    }
-  }
-
-  function createProxy(target: any, subDraft: () => Record<string | number | symbol, any>) {
+  function createProxy(target: any, subDraft: () => Record<string | number | symbol, any>): UndouProxy<T> {
     const dummy: Record<string | number | symbol, ProxyCatch | undefined> = (Array.isArray(target) ? [] : {}) as any
+
+    function clearProxyCatch(ctx: Record<string | number | symbol, ProxyCatch | undefined>, prop: string | number | symbol) {
+      const proxyCatch = ctx[prop]
+      if (proxyCatch && typeof proxyCatch === 'object') {
+        proxyCatch.enable = false
+        ctx[prop] = undefined
+        let currentValue = subDraft()[prop]
+        if (isDraft(currentValue)) {
+          currentValue = current(currentValue)
+        }
+        proxyCurrentMap.set(proxyCatch.proxy, currentValue)
+      }
+    }
+
     return new Proxy(dummy, {
       get(ctx, prop) {
         if (prop === STATE_PROXY_SYMBOL) {
@@ -185,7 +194,10 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
             proxy: createProxy(originalValue, () => {
               // 如果 proxyCatch 的 enable 为 false，则说明这个 object 已经被从当前的 state 树中移除了。
               // 这时候如果访问 subDraft 会返回一个空对象，所以只能返回 value 了。
-              if (!proxyCatch!.enable || key === draftCacheKey) {
+              if (!proxyCatch!.enable) {
+                return proxyCurrentMap.get(proxyCatch!.proxy)
+              }
+              if (key === draftCacheKey) {
                 return value
               }
               key = draftCacheKey
@@ -260,7 +272,7 @@ export function undou<T>(source: T, patchListener?: PatchListener | undefined, s
         dye()
         return result
       },
-    })
+    }) as UndouProxy<T>
   }
 }
 
