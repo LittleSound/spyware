@@ -577,4 +577,57 @@ describe('undou', () => {
     state.value.foo[0].a = 100
     expect(state.value.foo).toEqual([{ a: 100 }])
   })
+
+  it('should works with destructuring', async () => {
+    const changes: Patch[] = []
+    const inverseChanges: Patch[] = []
+    const state = undou({
+      foo: { a: 1 },
+      bar: { b: 2 },
+    }, (patches, inversePatches) => {
+      changes.push(...patches)
+      inverseChanges.push(...inversePatches)
+    })
+
+    state.value = {
+      ...state.value,
+      foo: { a: 100 },
+    }
+
+    expect(state.value.foo.a).toBe(100)
+    expect(state.value.bar.b).toBe(2)
+    await nextTick()
+    expect(changes).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [],
+          "value": {
+            "bar": {
+              "b": 2,
+            },
+            "foo": {
+              "a": 100,
+            },
+          },
+        },
+      ]
+    `)
+    expect(inverseChanges).toMatchInlineSnapshot(`
+      [
+        {
+          "op": "replace",
+          "path": [],
+          "value": {
+            "bar": {
+              "b": 2,
+            },
+            "foo": {
+              "a": 1,
+            },
+          },
+        },
+      ]
+    `)
+  })
 })
