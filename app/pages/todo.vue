@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Patch } from 'undou'
 import { patchState, undou } from 'undou'
+import PatchItem from '~/components/PatchItem.vue'
 
 interface TodoItem {
   id: string
@@ -12,12 +13,12 @@ interface TodoItem {
 
 const maxStackSize = ref(10)
 
-interface PatchItem {
+interface PatchItemType {
   direct: Patch[]
   inverse: Patch[]
 }
-const undoStack = ref<PatchItem[]>([])
-const redoStack = ref<PatchItem[]>([])
+const undoStack = ref<PatchItemType[]>([])
+const redoStack = ref<PatchItemType[]>([])
 
 const state = undou({
   todos: [] as TodoItem[],
@@ -57,7 +58,7 @@ function addTodo() {
   if (newTodoTitle.value.trim() === '')
     newTodoTitle.value = `new todo ${Math.random().toString(36).substring(2, 6)}`
   state.value.todos.push({
-    id: crypto.randomUUID(),
+    id: crypto.randomUUID().split('-')[0],
     title: newTodoTitle.value.trim(),
     completed: false,
   })
@@ -149,30 +150,42 @@ function clearAllTodos() {
         </div>
 
         <div flex="~ col gap-5">
-          <div flex="~ col gap-2">
+          <div flex="~ col gap-3">
             <h2 text-lg font-100>
               Undos
             </h2>
-            <div v-for="(patch, index) in undoStack" :key="index" text-sm>
-              <p text-green-300>
-                {{ patch.direct }}
-              </p>
-              <p text-xs text-red-300>
-                {{ patch.inverse }}
-              </p>
+            <div v-for="(patchItem, index) in undoStack" :key="index" flex="~ col gap-1" p2 rounded-md bg-gray-200 dark:bg-gray-700>
+              <PatchItem
+                v-for="(directItem, index2) in patchItem.direct"
+                :key="`${index}-${index2}-direct`"
+                text-xs text-green-300
+                :patch="directItem"
+              />
+              <PatchItem
+                v-for="(inverseItem, index2) in patchItem.inverse"
+                :key="`${index}-${index2}-inverse`"
+                text-xs text-red-300
+                :patch="inverseItem"
+              />
             </div>
           </div>
           <div flex="~ col gap-2">
             <h2 text-lg font-100>
               Redos
             </h2>
-            <div v-for="(patch, index) in redoStack" :key="index" text-sm>
-              <p text-green-300>
-                {{ patch.direct }}
-              </p>
-              <p text-xs text-red-300>
-                {{ patch.inverse }}
-              </p>
+            <div v-for="(patchItem, index) in redoStack.slice().reverse()" :key="index" flex="~ col gap-1" p2 rounded-md bg-gray-200 dark:bg-gray-700>
+              <PatchItem
+                v-for="(directItem, index2) in patchItem.direct"
+                :key="`${index}-${index2}-direct`"
+                text-xs text-green-300
+                :patch="directItem"
+              />
+              <PatchItem
+                v-for="(inverseItem, index2) in patchItem.inverse"
+                :key="`${index}-${index2}-inverse`"
+                text-xs text-red-300
+                :patch="inverseItem"
+              />
             </div>
           </div>
         </div>

@@ -86,7 +86,7 @@ function redo() {
         <h2 text-lg font-100>
           Redos
         </h2>
-        <div v-for="(patch, index) in redoStack" :key="index">
+        <div v-for="(patch, index) in redoStack.slice().reverse()" :key="index">
           <p text-green-300>
             {{ patch.direct }}
           </p>
