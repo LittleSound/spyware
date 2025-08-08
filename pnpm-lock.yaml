@@ -99,6 +99,9 @@ importers:
       '@vueuse/core':
         specifier: catalog:frontend
         version: 13.3.0(vue@3.5.16(typescript@5.8.3))
+      immer:
+        specifier: catalog:prod
+        version: 10.1.1
       tsdown:
         specifier: catalog:build
         version: 0.13.2(typescript@5.8.3)(vue-tsc@2.2.10(typescript@5.8.3))

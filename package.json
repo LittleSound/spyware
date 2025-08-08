@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@vueuse/core": "catalog:frontend",
+    "immer": "catalog:prod",
     "tsdown": "catalog:build",
     "vue": "catalog:frontend",
     "vue-router": "catalog:frontend"
