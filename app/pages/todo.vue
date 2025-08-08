@@ -2,6 +2,7 @@
 import type { Patch } from 'undou'
 import { patchState, undou } from 'undou'
 import PatchItem from '~/components/PatchItem.vue'
+import ToDoItem from '~/components/ToDoItem.vue'
 
 interface TodoItem {
   id: string
@@ -95,34 +96,31 @@ function clearAllTodos() {
           <button btn @click="addTodo">
             Add
           </button>
-          <button bg-red-500 btn @click="clearAllTodos">
+          <button bg-red-500 btn :disabled="state.value.todos.length === 0" @click="clearAllTodos">
             Clear All
           </button>
         </div>
 
         <div flex="~ col gap-2">
-          <div v-for="todo in state.value.todos" :key="todo.id" flex="~ items-start">
-            <div flex="~ gap-4" p2 rounded-md bg-gray-600 cursor-pointer :class="{ '!outline-2 outline-blue-400': selectedTodo === todo.id }" @click="selectedTodo = todo.id">
-              <div size-8 flex="~ items-center justify-center">
-                <input v-model="todo.completed" type="checkbox" size-4 cursor-pointer click-feedback>
-              </div>
-              <div flex="~ items-center">
-                <input v-model.lazy="todo.title" outline-none>
-              </div>
-              <button btn @click="removeTodo(todo.id)">
-                Remove
-              </button>
-            </div>
-          </div>
+          <ToDoItem
+            v-for="todo in state.value.todos"
+            :id="todo.id"
+            :key="todo.id"
+            v-model:completed="todo.completed"
+            v-model:title="todo.title"
+            :is-selected="selectedTodo === todo.id"
+            @select="selectedTodo = $event"
+            @remove="removeTodo"
+          />
         </div>
       </div>
 
       <div p10 flex="~ col gap-10" flex-1>
         <div flex="~ gap-2">
-          <button btn :disabled="undoStack.length === 0" class="disabled:opacity-50" @click="undo">
+          <button btn :disabled="undoStack.length === 0" @click="undo">
             Undo ({{ undoStack.length }})
           </button>
-          <button btn :disabled="redoStack.length === 0" class="disabled:opacity-50" @click="redo">
+          <button btn :disabled="redoStack.length === 0" @click="redo">
             Redo ({{ redoStack.length }})
           </button>
 
