@@ -34,8 +34,8 @@ catalogs:
     vue-router: ^4.5.1
   prod:
     immer: ^10.1.1
-    yjs: ^13.6.19
-    immer-yjs: ^0.4.0
+    immer-yjs: v1.1.1
+    yjs: ^13.6.27
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks
