@@ -19,9 +19,11 @@
   "dependencies": {
     "@vueuse/core": "catalog:frontend",
     "immer": "catalog:prod",
+    "immer-yjs": "catalog:prod",
     "tsdown": "catalog:build",
     "vue": "catalog:frontend",
-    "vue-router": "catalog:frontend"
+    "vue-router": "catalog:frontend",
+    "yjs": "catalog:prod"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:dev",
