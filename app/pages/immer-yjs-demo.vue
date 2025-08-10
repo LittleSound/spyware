@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import * as Y from 'yjs'
 import { yMapToDraft } from 'immer-yjs'
-import { produce } from 'immer'
 
 interface TodoItem {
   id: string
@@ -40,10 +39,18 @@ const connectionStatus = ref('Disconnected')
 
 // Update local state when Yjs document changes
 function updateLocalState() {
-  const draft = yMapToDraft(ymap) as AppState
-  state.value = {
-    todos: draft.todos || [],
-    users: draft.users || []
+  try {
+    const draft = yMapToDraft(ymap) as AppState
+    state.value = {
+      todos: Array.isArray(draft.todos) ? draft.todos : [],
+      users: Array.isArray(draft.users) ? draft.users : []
+    }
+  } catch (error) {
+    console.warn('Failed to update local state:', error)
+    state.value = {
+      todos: [],
+      users: []
+    }
   }
 }
 
@@ -53,7 +60,7 @@ ymap.observe(updateLocalState)
 
 // Add current user on mount
 onMounted(() => {
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   const yusers = ymap.get('users') as Y.Array<string>
   
   // Add current user if not already present
@@ -85,7 +92,7 @@ function addTodo() {
     newTodoTitle.value = `New todo by ${currentUser.value}`
   }
 
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   
   ydoc.transact(() => {
     const newTodo: TodoItem = {
@@ -102,7 +109,7 @@ function addTodo() {
 }
 
 function removeTodo(id: string) {
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   const todos = ytodos.toArray()
   const index = todos.findIndex((todo: TodoItem) => todo.id === id)
   
@@ -112,7 +119,7 @@ function removeTodo(id: string) {
 }
 
 function toggleTodo(id: string) {
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   const todos = ytodos.toArray()
   const index = todos.findIndex((todo: TodoItem) => todo.id === id)
   
@@ -127,7 +134,7 @@ function toggleTodo(id: string) {
 }
 
 function updateTodoTitle(id: string, title: string) {
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   const todos = ytodos.toArray()
   const index = todos.findIndex((todo: TodoItem) => todo.id === id)
   
@@ -142,7 +149,7 @@ function updateTodoTitle(id: string, title: string) {
 }
 
 function clearAllTodos() {
-  const ytodos = ymap.get('todos') as Y.Array<any>
+  const ytodos = ymap.get('todos') as Y.Array<TodoItem>
   const length = ytodos.length
   if (length > 0) {
     ytodos.delete(0, length)
@@ -157,7 +164,7 @@ function simulateUser() {
   
   // Simulate the new user adding a todo
   setTimeout(() => {
-    const ytodos = ymap.get('todos') as Y.Array<any>
+    const ytodos = ymap.get('todos') as Y.Array<TodoItem>
     const botTodo: TodoItem = {
       id: crypto.randomUUID().split('-')[0],
       title: `Todo from ${newUser}`,
@@ -273,7 +280,7 @@ const sortedTodos = computed(() =>
             >
             <input 
               :value="todo.title"
-              @input="updateTodoTitle(todo.id, ($event.target as HTMLInputElement).value)"
+              @input="updateTodoTitle(todo.id, ($event.target as HTMLInputElement)?.value || '')"
               class="flex-1 bg-transparent border-none outline-none"
               :class="todo.completed ? 'line-through text-gray-500' : ''"
             >
